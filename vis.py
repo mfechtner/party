@@ -1,7 +1,13 @@
 import cv2
 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-megusta = cv2.imread('megusta.png', -1)
+megusta = cv2.imread('megusta.png')
+
+def overlay(dest, source, posx, posy, S=None, D=None):
+    S = S or (0.5, 0.5, 0.5, 0.5)
+    D = D or (0.5, 0.5, 0.5, 0.5)
+
+    
 
 def run():
     cv2.namedWindow("preview")
@@ -23,9 +29,18 @@ def run():
             maxSize=(400, 400),
         )
 
+        fh,fw = frame.shape[0], frame.shape[1]
         for (x, y, w, h) in faces:
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        cv2.imwrite('megusta.png', frame)
+            megusta_fit = cv2.resize(megusta, (w, h))
+            for sx in range(0,w):
+                for sy in range(0,h):
+                    if x+sx+1 > fw or y+sy+1 > fh:
+                        continue
+                    frame[x+sx,y+sy] = megusta_fit[sx,sy]
+
+            #overlay(frame, megusta, x, y)
+            #cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        
 
 
         cv2.imshow("preview", frame)
