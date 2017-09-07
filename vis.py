@@ -22,14 +22,14 @@ def run():
 
     faces = []
 
-    last_frame = []
+    last_frame = None
 
     while rval:
         counter += 1
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        frame = cv2.GaussianBlur(frame, (21, 21), 0)       
+        frame = cv2.GaussianBlur(frame, (5, 5), 0)       
 
-        if len(last_frame) > 0:
+        if not last_frame is None:
             frame_delta = cv2.absdiff(last_frame, frame)
             thresh = cv2.threshold(frame_delta, 25, 255, cv2.THRESH_BINARY)[1]
         else:
@@ -37,16 +37,23 @@ def run():
             frame_delta = None
         last_frame = frame
 
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+        if not thresh is None:
+            thresh = cv2.dilate(thresh, None, iterations=2)
+            cnts, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        if thresh:
+            for cnt in cnts:
+                (x, y, w, h) = cv2.boundingRect(cnt)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
             faces = face_cascade.detectMultiScale(
-                gray_image,
-                scaleFactor=1.3,
-                minNeighbors=10,
+                frame,
+                scaleFactor=1.1,
+                minNeighbors=5,
                 minSize=(50, 50),
                 maxSize=(400, 400),
             )
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
             fh,fw = frame.shape[0], frame.shape[1]
             for (x, y, w, h) in faces:
@@ -66,7 +73,7 @@ def run():
 
         cv2.imshow("preview", frame)
         rval, frame = vc.read()
-        key = cv2.waitKey(40)
+        key = cv2.waitKey(1)
         if key == 27: # exit on ESC
             break
     cv2.destroyWindow("preview")
