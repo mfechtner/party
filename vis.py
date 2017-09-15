@@ -1,43 +1,60 @@
-import cv2, threading, numpy
+import pygame
 
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-megusta = cv2.imread('megusta.png', -1)
+pygame.init()
+screen = pygame.display.set_mode((200, 300), pygame.RESIZABLE)
 
-def overlay(dest, source, posx, posy, S=None, D=None):
-    S = S or (0.5, 0.5, 0.5, 0.5)
-    D = D or (0.5, 0.5, 0.5, 0.5)
+screen.fill((255,155,55))
+pygame.display.flip()
 
-circles = []
+class Application(object):
+    def __init__(self):
+        self.running = False
 
-def draw_cirlce(event,x,y,flags,param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print(event)
-        circles.append((x, y))
+    def handleEvent(self, ev):
+        if ev.type == pygame.QUIT:
+            self.handleQuit(ev)    
+        if ev.type == pygame.KEYUP:
+            self.handleKeyUpEvent(ev)
 
-def run():
-    window_name = "preview"
+    def handleQuit(self, ev):
+        self.running = False
 
-    cv2.namedWindow(window_name)
-    cv2.setMouseCallback(window_name, draw_cirlce)
+    def handleKeyUpEvent(self, ev):
+        if ev.key in (ord('q'), pygame.K_ESCAPE):
+            self.running = False
 
-    vc = cv2.VideoCapture(0)
+    def run(self):
+        self.running = True
+        while self.running:
+            ev = pygame.event.wait()
+            self.handleEvent(ev)
 
-    layers = [None, None, None]
-    offset = 0
 
-    while True:
-        ret, image = vc.read()
 
-        for x, y in circles:
-            print(x, y)
-            cv2.circle(image,(x,y),100,(255,0,0),-1)
+while True:
 
-        cv2.imshow(window_name, image)
+    ev = pygame.event.wait()
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+    if ev.type == pygame.KEYDOWN:
+        print ev.key == ord('f')
+        if ev.key == pygame.K_ESCAPE or :
             break
 
-    cv2.destroyWindow(window_name)
 
-if __name__ == '__main__':
-    run()
+
+    if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+        # Display in Fullscreen mode
+        pygame.display.quit()
+        pygame.display.init()
+        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+
+    elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 3:
+        # Display in Resizable mode
+        pygame.display.quit()
+        pygame.display.init()
+        screen = pygame.display.set_mode((200, 300), pygame.RESIZABLE)
+
+    print ev
+
+    screen.fill((255,155,55))
+    pygame.display.flip()
