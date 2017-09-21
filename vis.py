@@ -40,8 +40,9 @@ class Video(object):
         self.video_capture = video_capture
         self.points = points
 
+
 def run():
-    window_name = 'Party Hard'
+    window_name = "preview"
 
     videos = [
         Video(cv2.VideoCapture('Test_01.mp4')),
@@ -52,6 +53,9 @@ def run():
     
     cv2.namedWindow(window_name)
     cv2.setMouseCallback(window_name, handler.callback)
+    
+
+
 
     dim  = (700,858,3)
     sh,sw,d = dim
@@ -107,5 +111,10 @@ def run():
         
         cv2.imshow(window_name, canvas)
 
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cv2.destroyWindow(window_name)
+
 if __name__ == '__main__':
-    run();
+    run()
