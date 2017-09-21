@@ -1,60 +1,111 @@
-import pygame
+import cv2, numpy, time
+from imutils import perspective
+import math
 
-pygame.init()
-screen = pygame.display.set_mode((200, 300), pygame.RESIZABLE)
+class MouseHandler(object):
+    def __init__(self, videos=[]):
+        self.edit = False
+        self.drag = False
+        self.videos = videos
+        self.candidate = None
 
-screen.fill((255,155,55))
-pygame.display.flip()
+    def callback(self, event, x, y, flags, param):
+        for video in self.videos:
+            if video.points is None:
+                return
 
-class Application(object):
-    def __init__(self):
-        self.running = False
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.drag = not self.drag
+            self.edit = self.drag
+            print('drag', self.drag)
+            return
 
-    def handleEvent(self, ev):
-        if ev.type == pygame.QUIT:
-            self.handleQuit(ev)    
-        if ev.type == pygame.KEYUP:
-            self.handleKeyUpEvent(ev)
+        if not self.drag or event != cv2.EVENT_MOUSEMOVE:
+            self.candidate = None
+            return
 
-    def handleQuit(self, ev):
-        self.running = False
+        if not self.candidate:
+            for video in self.videos:
+                index = 0
+                for point in video.points:
+                    px,py = point
+                    distance = math.sqrt( (x - px)**2 + (y - py)**2 )
+                    if self.candidate is None or self.candidate[0] > distance:
+                        self.candidate = (distance, index, video)
+                    index += 1
+        self.candidate[2].points[self.candidate[1]] = (x,y)
 
-    def handleKeyUpEvent(self, ev):
-        if ev.key in (ord('q'), pygame.K_ESCAPE):
-            self.running = False
+class Video(object):
+    def __init__(self, video_capture, points=None):
+        self.video_capture = video_capture
+        self.points = points
 
-    def run(self):
-        self.running = True
-        while self.running:
-            ev = pygame.event.wait()
-            self.handleEvent(ev)
+def run():
+    window_name = 'Party Hard'
 
+    videos = [
+        Video(cv2.VideoCapture('Test_01.mp4')),
+        Video(cv2.VideoCapture('Test_01.mp4'))
+    ]
 
+    handler = MouseHandler(videos)
+    
+    cv2.namedWindow(window_name)
+    cv2.setMouseCallback(window_name, handler.callback)
 
-while True:
+    dim  = (700,858,3)
+    sh,sw,d = dim
 
-    ev = pygame.event.wait()
+    while True:
+        canvas = numpy.zeros((sh,sw,d), numpy.uint8)
 
-    if ev.type == pygame.KEYDOWN:
-        print ev.key == ord('f')
-        if ev.key == pygame.K_ESCAPE or :
-            break
+        x_ = 0.0
 
+        for video in videos:
+            video_count = len(videos)
+            
 
+            ret, image = video.video_capture.read()
 
-    if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
-        # Display in Fullscreen mode
-        pygame.display.quit()
-        pygame.display.init()
-        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            if video.points is None:
+                i_h, i_w, _ = image.shape
 
-    elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 3:
-        # Display in Resizable mode
-        pygame.display.quit()
-        pygame.display.init()
-        screen = pygame.display.set_mode((200, 300), pygame.RESIZABLE)
+                scale = sw / video_count / i_w
 
-    print ev
+                video.points = numpy.array([
+                    (x_, 0.0), 
+                    (x_+i_w*scale, 0), 
+                    (x_+i_w*scale, i_h*scale), 
+                    (x_, i_h*scale),
+                ], dtype='float32')
 
-    screen.fill((255,155,55))
-    pygame.display.flip()
+                x_ += i_w*scale
+
+            M = cv2.getPerspectiveTransform(
+                numpy.array((
+                        (0.0, 0.0), 
+                        (i_w, 0), 
+                        (i_w, i_h), 
+                        (0, i_h),
+                    ), 
+                    dtype='float32'
+                ),
+                video.points,
+            )
+
+            image = cv2.warpPerspective(image, M, dsize=(sw,sh))
+            y_offset = 0
+            x_offset = 0
+
+            canvas = cv2.addWeighted(canvas,1,image,1,0)
+            #canvas[y_offset:y_offset+image.shape[0], x_offset:x_offset+image.shape[1]] = image
+        
+        if handler.edit:
+            for video in videos:
+                for p in video.points:
+                    cv2.circle(canvas, tuple(p), 10, (0,0,255), -1)
+        
+        cv2.imshow(window_name, canvas)
+
+if __name__ == '__main__':
+    run();
